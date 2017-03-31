@@ -1,0 +1,198 @@
+<html>
+
+<head>
+</head>
+
+<body>
+    <div id="notification"></div>
+    <ul id="edms"></ul>
+    <ul id="topics"></ul>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.2.0/jquery.min.js"></script>
+    <script type="text/javascript">
+        (function () {
+            window.raphael={};
+            var subscriptionKey = "8c2a58853cdd4ad69205586dab337540";
+            var pollingInterval = 15 * 1000;
+
+            var abc="123";
+            window.raphael.abc="345";
+            var db = {
+                edms: []
+            };
+
+            getEdms(submitCognitiveOperation);
+
+            function submitCognitiveOperation() {
+                var query = {
+                    documents: db.edms
+                };
+
+                $.ajax({
+                    url: 'https://westus.api.cognitive.microsoft.com/text/analytics/v2.0/topics',
+                    method: 'POST',
+                    data: JSON.stringify(query),
+                    contentType: "application/json",
+                    headers: {
+                        "Ocp-Apim-Subscription-Key": subscriptionKey
+                    },
+                    success: onCognitiveOperationSubmitted
+                });
+                // pollCognitiveOperation();
+            }
+
+            function onCognitiveOperationSubmitted(data, textStatus, jqXHR) {
+                var location = jqXHR.getResponseHeader("Operation-Location");
+                pollCognitiveOperation(location);
+            }
+
+
+            function getEdms(callback, pageNumber) {
+                pageNumber = pageNumber || 0;
+
+                $.getJSON("http://lda.data.parliament.uk/edms.json?_view=basic&_properties=motionText&_pageSize=20&_page=" + pageNumber + "&session=2016/17")
+                    .done(function (data) {
+                        addEdmToDb(data.result.items);
+                        // TODO: if (data.next != null) 
+                        if (pageNumber < 6) {
+                            getEdms(callback, pageNumber + 1);
+                        } else {
+                            callback();
+                        }
+                    });
+            }
+
+            function addEdmToDb(edms) {
+                edms.forEach(function (edm) {
+                    db.edms.push({
+                        id: edm._about,
+                        text: edm.motionText
+                    });
+                });
+            }
+
+            function pollCognitiveOperation(location) {
+                $.ajax({
+                    // url: "https://westus.api.cognitive.microsoft.com/text/analytics/v2.0/operations/3b7dad8ea9594ce5bcb4d6829bc00bf8",
+                    url: location,
+                    headers: {
+                        "Ocp-Apim-Subscription-Key": subscriptionKey
+                    },
+                    success: function (data) {
+                        if (data.status == "Succeeded") {
+                            process(data.operationProcessingResult.topicAssignments, data.operationProcessingResult.topics);
+                        }
+                        else {
+                            var boundPollFunction = pollCognitiveOperation.bind(undefined, location);
+
+                            setTimeout(boundPollFunction, pollingInterval);
+                        }
+                    }
+                });
+            };
+
+            function process(topicAssignments, topics) {
+                db.topics = topics;
+
+                topicAssignments.forEach(assignTopic);
+
+                render();
+            }
+
+            function assignTopic(topicAssignment) {
+                var edm = getEdmById(topicAssignment.documentId);
+                var topic = getTopicById(topicAssignment.topicId);
+
+                if (!edm.topics) {
+                    edm.topics = [];
+                }
+                if (!topic.edms) {
+                    topic.edms = [];
+                }
+
+                edm.topics.push(topic);
+                topic.edms.push(edm);
+            }
+
+            function getEdmById(id) {
+                return db.edms.filter(function (e) {
+                    return e.id === id;
+                })[0];
+            }
+
+            function getTopicById(id) {
+                return db.topics.filter(function (t) {
+                    return t.id === id;
+                })[0];
+            }
+
+            function render() {
+                var edmsList = document.getElementById("edms");
+
+                for (var i = 0; i < db.edms.length; i++) {
+                    var edm = db.edms[i];
+
+                    var edmItem = document.createElement("li");
+                    edmsList.appendChild(edmItem);
+
+                    var edmTextSpan = document.createElement("span");
+                    edmItem.appendChild(edmTextSpan);
+
+                    edmTextSpan.innerText = edm.text;
+
+                    var topicsList = document.createElement("ul");
+                    edmItem.appendChild(topicsList);
+
+                    if (edm.topics) {
+                        for (var j = 0; j < edm.topics.length; j++) {
+                            var topic = edm.topics[j];
+
+                            var topicItem = document.createElement("li");
+                            topicsList.appendChild(topicItem);
+
+                            var topicTextSpan = document.createElement("span");
+                            topicItem.appendChild(topicTextSpan);
+
+                            topicTextSpan.innerText = topic.keyPhrase;
+                        }
+                    }
+                }
+
+                var topicsList = document.getElementById("topics");
+
+                for (var j = 0; j < db.topics.length; j++) {
+                    var topic = db.topics[j];
+
+                    var topicItem = document.createElement("li");
+                    topicsList.appendChild(topicItem);
+
+                    var topicTextSpan = document.createElement("span");
+                    topicItem.appendChild(topicTextSpan);
+
+                    topicTextSpan.innerText = topic.keyPhrase;
+
+                    var edmsList = document.createElement("ul");
+                    topicItem.appendChild(edmsList);
+
+                    for (var i = 0; i < topic.edms.length; i++) {
+                        var edm = topic.edms[i];
+
+                        var edmItem = document.createElement("li");
+                        edmsList.appendChild(edmItem);
+
+                        var edmTextSpan = document.createElement("span");
+                        edmItem.appendChild(edmTextSpan);
+
+                        edmTextSpan.innerText = edm.text;
+                    }
+                }
+            }
+        })();
+
+
+
+    </script>
+
+</body>
+
+</html>

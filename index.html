@@ -50,7 +50,7 @@
             function getEdms(callback, pageNumber) {
                 pageNumber = pageNumber || 0;
 
-                $.getJSON("http://lda.data.parliament.uk/edms.json?_view=basic&_properties=motionText&_pageSize=20&_page=" + pageNumber + "&session=2016/17")
+                $.getJSON("https://lda.data.parliament.uk/edms.json?_view=basic&_properties=motionText&_pageSize=20&_page=" + pageNumber + "&session=2016/17")
                     .done(function (data) {
                         addEdmToDb(data.result.items);
                         // TODO: if (data.next != null) 

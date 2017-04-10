@@ -1,6 +1,7 @@
 <html>
 
 <head>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
 </head>
 
 <body>
@@ -8,15 +9,13 @@
     <ul id="edms"></ul>
     <ul id="topics"></ul>
 
+    
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.2.0/jquery.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
     <script type="text/javascript">
         (function () {
-            window.raphael={};
             var subscriptionKey = "8c2a58853cdd4ad69205586dab337540";
             var pollingInterval = 15 * 1000;
-
-            var abc="123";
-            window.raphael.abc="345";
             var db = {
                 edms: []
             };
@@ -50,11 +49,11 @@
             function getEdms(callback, pageNumber) {
                 pageNumber = pageNumber || 0;
 
-                $.getJSON("https://lda.data.parliament.uk/edms.json?_view=basic&_properties=motionText&_pageSize=20&_page=" + pageNumber + "&session=2016/17")
+                $.getJSON("https://lda.data.parliament.uk/edms.json?_view=basic&_properties=motionText&_pageSize=200&_page=" + pageNumber + "&session=2016/17")
                     .done(function (data) {
                         addEdmToDb(data.result.items);
-                        // TODO: if (data.next != null) 
-                        if (pageNumber < 6) {
+                        if (data.result.next != null) {
+                        // if (pageNumber < 6) {
                             getEdms(callback, pageNumber + 1);
                         } else {
                             callback();
@@ -73,8 +72,8 @@
 
             function pollCognitiveOperation(location) {
                 $.ajax({
-                    // url: "https://westus.api.cognitive.microsoft.com/text/analytics/v2.0/operations/3b7dad8ea9594ce5bcb4d6829bc00bf8",
-                    url: location,
+                    url: "https://westus.api.cognitive.microsoft.com/text/analytics/v2.0/operations/bc504af9aa7f4864812c46918c7fccfa",
+                    // url: location,
                     headers: {
                         "Ocp-Apim-Subscription-Key": subscriptionKey
                     },
